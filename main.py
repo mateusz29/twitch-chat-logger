@@ -1,10 +1,11 @@
-import requests
-import os
-from dotenv import load_dotenv
-import json
-import twitchio
-from twitchio.ext import commands
 import asyncio
+import json
+import os
+
+import requests
+import twitchio
+from dotenv import load_dotenv
+from twitchio.ext import commands
 
 load_dotenv()
 
