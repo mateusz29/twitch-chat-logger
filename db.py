@@ -3,7 +3,6 @@ import os
 from dotenv import load_dotenv
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, create_engine
 from sqlalchemy.orm import declarative_base, relationship
-from sqlalchemy.sql import func
 
 load_dotenv()
 
@@ -32,7 +31,7 @@ class Message(Base):
     channel_id = Column(Integer, ForeignKey("channels.id"))
     user_name = Column(String)
     content = Column(String)
-    timestamp = Column(DateTime(timezone=True), server_default=func.now())
+    timestamp = Column(DateTime)
 
     channel = relationship("Channel")
 

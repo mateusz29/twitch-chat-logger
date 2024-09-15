@@ -1,8 +1,10 @@
 import asyncio
 
 import twitchio
+from sqlalchemy.orm import sessionmaker
 from twitchio.ext import commands
 
+from db import Channel, Message, engine
 from twitch_api import get_category_id, get_live_channels
 
 
@@ -10,32 +12,63 @@ class Bot(commands.Bot):
     def __init__(self, client_id, oauth_token, category_name):
         self.client_id = client_id
         self.oauth_token = oauth_token
-        self.category_id = get_category_id(category_name, client_id, oauth_token)
-        self.channels = get_live_channels(self.category_id, client_id, oauth_token)
+        self.category_name = category_name
+        self.category_id = None
+        self.channels = []
+        self.Session = sessionmaker(bind=engine)
         super().__init__(
             token=oauth_token,
             client_id=client_id,
             prefix="!",
             initial_channels=self.channels,
         )
-        self.loop.create_task(self.update_channels())
 
     async def event_ready(self) -> None:
         print("Successfully logged in!")
-        print(f"Connected to channels: {', '.join(self.channels)}")
+        self.category_id = get_category_id(self.category_name, self.client_id, self.oauth_token)
+        await self.update_channels(initial=True)
+        self.loop.create_task(self.update_channels_loop())
 
     async def event_message(self, message: twitchio.Message) -> None:
-        print(f"[{message.channel.name}] {message.author.name}: {message.content}")
-
-    async def update_channels(self) -> None:
-        while True:
-            new_channels = get_live_channels(
-                self.category_id, self.client_id, self.oauth_token
+        with self.Session() as session:
+            channel = (
+                session.query(Channel).filter_by(name=message.channel.name).first()
             )
-            channels_to_join = list(set(new_channels) - set(self.channels))
+            new_message = Message(
+                channel_id=channel.id,
+                user_name=message.author.name,
+                content=message.content,
+                timestamp=message.timestamp,
+            )
+            session.add(new_message)
+            session.commit()
 
+        print(
+            f"[{message.channel.name}] [{message.timestamp}] {message.author.name}: {message.content}"
+        )
+
+    async def update_channels(self, initial=False) -> None:
+        new_channels = get_live_channels(
+            self.category_id, self.client_id, self.oauth_token
+        )
+        channels_to_join = list(set(new_channels) - set(self.channels))
+
+        if channels_to_join:
             print(f"Joining channels: {channels_to_join}")
             await self.join_channels(channels_to_join)
 
-            self.channels = new_channels
+            with self.Session() as session:
+                for channel_name in channels_to_join:
+                    channel = session.query(Channel).filter_by(name=channel_name).first()
+                    if not channel:
+                        channel = Channel(name=channel_name)
+                        session.add(channel)
+                session.commit()
+
+        self.channels += channels_to_join
+        await asyncio.sleep(60)
+    
+    async def update_channels_loop(self) -> None:
+        while True:
+            await self.update_channels()
             await asyncio.sleep(60)
