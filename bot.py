@@ -24,6 +24,7 @@ class Bot(commands.Bot):
         )
 
     def get_channels_from_db(self) -> list[str]:
+        # TODO: check if channel is band before joining
         with self.Session() as session:
             channels = session.query(Channel.name).all()
             return [channel[0] for channel in channels]
@@ -32,13 +33,13 @@ class Bot(commands.Bot):
         print("Successfully logged in!")
         self.category_id = get_category_id(self.category_name, self.client_id, self.oauth_token)
 
-        # get channels from db
         self.channels = self.get_channels_from_db()
 
         if self.channels:
             print(f"Joining channels from db: {', '.join(self.channels)}")
             await self.join_channels(self.channels)
 
+        await self.update_channels()
         self.loop.create_task(self.update_channels_loop())
 
     async def event_message(self, message: twitchio.Message) -> None:
@@ -78,9 +79,10 @@ class Bot(commands.Bot):
                 session.commit()
 
             self.channels.extend(channels_to_join)
-        print(self.channels)
+        else:
+            print("No new live channels to join.")
             
     async def update_channels_loop(self) -> None:
         while True:
-            await self.update_channels()
             await asyncio.sleep(60)
+            await self.update_channels()
