@@ -23,10 +23,22 @@ class Bot(commands.Bot):
             initial_channels=self.channels,
         )
 
+    def get_channels_from_db(self) -> list[str]:
+        with self.Session() as session:
+            channels = session.query(Channel.name).all()
+            return [channel[0] for channel in channels]
+
     async def event_ready(self) -> None:
         print("Successfully logged in!")
         self.category_id = get_category_id(self.category_name, self.client_id, self.oauth_token)
-        await self.update_channels(initial=True)
+
+        # get channels from db
+        self.channels = self.get_channels_from_db()
+
+        if self.channels:
+            print(f"Joining channels from db: {', '.join(self.channels)}")
+            await self.join_channels(self.channels)
+
         self.loop.create_task(self.update_channels_loop())
 
     async def event_message(self, message: twitchio.Message) -> None:
@@ -47,14 +59,14 @@ class Bot(commands.Bot):
             f"[{message.channel.name}] [{message.timestamp}] {message.author.name}: {message.content}"
         )
 
-    async def update_channels(self, initial=False) -> None:
+    async def update_channels(self) -> None:
         new_channels = get_live_channels(
             self.category_id, self.client_id, self.oauth_token
         )
         channels_to_join = list(set(new_channels) - set(self.channels))
 
         if channels_to_join:
-            print(f"Joining channels: {channels_to_join}")
+            print(f"Joining new live channels: {channels_to_join}")
             await self.join_channels(channels_to_join)
 
             with self.Session() as session:
@@ -65,9 +77,9 @@ class Bot(commands.Bot):
                         session.add(channel)
                 session.commit()
 
-        self.channels += channels_to_join
-        await asyncio.sleep(60)
-    
+            self.channels.extend(channels_to_join)
+        print(self.channels)
+            
     async def update_channels_loop(self) -> None:
         while True:
             await self.update_channels()
