@@ -24,7 +24,6 @@ class Bot(commands.Bot):
         )
 
     def get_channels_from_db(self) -> list[str]:
-        # TODO: check if channel is band before joining
         with self.Session() as session:
             channels = session.query(Channel.name).all()
             return [channel[0] for channel in channels]
