@@ -90,3 +90,21 @@ def get_top_categories(client_id: str, oauth_token: str, after=None) -> str:
         return response.json()
     else:
         raise Exception(f"Error: {response.status_code} - {response.text}")
+
+def get_all_live_categories(client_id: str, oauth_token: str) -> set:
+    cursor = ""
+    all_categories = set()
+
+    while True:
+        categories_data = get_top_categories(client_id, oauth_token, cursor)
+
+        for category in categories_data["data"]:
+            category_name = category["name"]
+            if category_name not in all_categories:
+                all_categories.add(category_name)
+
+        cursor = categories_data.get("pagination", {}).get("cursor")
+        if not cursor:
+            break
+    
+    return all_categories
