@@ -73,3 +73,20 @@ def get_user_id(username: str, client_id: str, oauth_token: str) -> str:
         raise Exception(
             f"Failed to fetch user ID: {response.status_code} - {response.text}"
         )
+
+
+def get_top_categories(client_id: str, oauth_token: str, after=None) -> str:
+    url = "https://api.twitch.tv/helix/games/top"
+    headers = {"Authorization": f"Bearer {oauth_token}", "Client-Id": client_id}
+    params = {
+        "first": 100,  # max number of items per page
+    }
+    if after:
+        params["after"] = after
+
+    response = requests.get(url, headers=headers, params=params)
+
+    if response.status_code == 200:
+        return response.json()
+    else:
+        raise Exception(f"Error: {response.status_code} - {response.text}")
