@@ -4,7 +4,8 @@
 
 - [ ] Check if channel is band before joining
 - [ ] Change connection to the db
-- [ ] Add a possibilty to add new categories, channels manually
+- [x] Add a possibilty to add categories manually
+- [ ] Add a possibility to add channels manually
 - [ ] Make tests
 - [ ] Host the code 
 
