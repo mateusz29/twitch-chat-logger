@@ -1,4 +1,4 @@
-# twitch-chat-logger# Twitch Chat Logger
+# Twitch Chat Logger
 
 ## TODO
 
