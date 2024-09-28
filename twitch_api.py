@@ -109,7 +109,7 @@ def get_all_live_categories(client_id: str, oauth_token: str) -> set:
     
     return all_categories
 
-def check_user_banned(username: str):
+def check_user_banned(username: str) -> bool:
     url = "https://api.ivr.fi/v2/twitch/user"
     params = {"login": username}
 
