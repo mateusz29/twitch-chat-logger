@@ -58,7 +58,7 @@ class Bot(commands.Bot):
         categories_from_db = self.get_categories_from_db()
         categories_to_join = list(set(self.category_names) - set(categories_from_db))
         self.category_names += categories_to_join
-        
+
         self.save_categories_to_db(categories_to_join)
 
         for category in self.category_names:

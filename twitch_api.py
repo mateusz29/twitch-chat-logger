@@ -91,6 +91,7 @@ def get_top_categories(client_id: str, oauth_token: str, after=None) -> str:
     else:
         raise Exception(f"Error: {response.status_code} - {response.text}")
 
+
 def get_all_live_categories(client_id: str, oauth_token: str) -> set:
     cursor = ""
     all_categories = set()
@@ -106,8 +107,9 @@ def get_all_live_categories(client_id: str, oauth_token: str) -> set:
         cursor = categories_data.get("pagination", {}).get("cursor")
         if not cursor:
             break
-    
+
     return all_categories
+
 
 def check_user_banned(usernames: list[str]) -> list[tuple[str, bool]]:
     url = "https://api.ivr.fi/v2/twitch/user"
@@ -120,8 +122,8 @@ def check_user_banned(usernames: list[str]) -> list[tuple[str, bool]]:
 
         login_and_banned = []
         for channel in data:
-            login = channel.get('login')
-            banned = channel.get('banned')
+            login = channel.get("login")
+            banned = channel.get("banned")
             login_and_banned.append((login, banned))
         return login_and_banned
     else:
