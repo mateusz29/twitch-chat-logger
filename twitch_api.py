@@ -109,14 +109,20 @@ def get_all_live_categories(client_id: str, oauth_token: str) -> set:
     
     return all_categories
 
-def check_user_banned(username: str) -> bool:
+def check_user_banned(usernames: list[str]) -> list[tuple[str, bool]]:
     url = "https://api.ivr.fi/v2/twitch/user"
-    params = {"login": username}
+    params = {"login": ",".join(usernames)}
 
     response = requests.get(url, params=params)
 
     if response.status_code == 200:
         data = response.json()
-        return data[0]["banned"]
+
+        login_and_banned = []
+        for channel in data:
+            login = channel.get('login')
+            banned = channel.get('banned')
+            login_and_banned.append((login, banned))
+        return login_and_banned
     else:
         raise Exception(f"Error: {response.status_code} - {response.text}")
