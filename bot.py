@@ -4,7 +4,7 @@ import twitchio
 from sqlalchemy.orm import sessionmaker
 from twitchio.ext import commands
 
-from db import Channel, Message, engine
+from db import Category, Channel, Message, engine
 from twitch_api import get_category_id, get_live_channels
 
 
@@ -23,15 +23,47 @@ class Bot(commands.Bot):
             initial_channels=self.channels,
         )
 
+    def get_categories_from_db(self) -> list[str]:
+        with self.Session() as session:
+            categories = session.query(Category.name).all()
+            return [category[0] for category in categories]
+
     def get_channels_from_db(self) -> list[str]:
         with self.Session() as session:
             channels = session.query(Channel.name).all()
             return [channel[0] for channel in channels]
 
+    def save_categories_to_db(self, category_names: list[str]) -> None:
+        with self.Session() as session:
+            for category_name in category_names:
+                category = session.query(Category).filter_by(name=category_name).first()
+                if not category:
+                    category = Category(name=category_name)
+                    session.add(category)
+            session.commit()
+
+    def save_channels_to_db(self, channel_names: list[str]) -> None:
+        with self.Session() as session:
+            for channel_name in channel_names:
+                channel = session.query(Channel).filter_by(name=channel_name).first()
+                if not channel:
+                    channel = Channel(name=channel_name)
+                    session.add(channel)
+            session.commit()
+
     async def event_ready(self) -> None:
         print("Successfully logged in!")
+
+        # Query existing categories from the db and add categories selected by user
+        categories_from_db = self.get_categories_from_db()
+        categories_to_join = list(set(self.category_names) - set(categories_from_db))
+        self.category_names += categories_to_join
+        
+        self.save_categories_to_db(categories_to_join)
+
         for category in self.category_names:
-            self.category_ids.append(get_category_id(category, self.client_id, self.oauth_token))
+            category_id = get_category_id(category, self.client_id, self.oauth_token)
+            self.category_ids.append(category_id)
 
         self.channels = self.get_channels_from_db()
 
@@ -63,7 +95,9 @@ class Bot(commands.Bot):
     async def update_channels(self) -> None:
         new_channels = []
         for category_id in self.category_ids:
-            new_channels.extend(get_live_channels(category_id, self.client_id, self.oauth_token))
+            new_channels.extend(
+                get_live_channels(category_id, self.client_id, self.oauth_token)
+            )
 
         channels_to_join = list(set(new_channels) - set(self.channels))
 
@@ -71,18 +105,12 @@ class Bot(commands.Bot):
             print(f"Joining new live channels: {channels_to_join}")
             await self.join_channels(channels_to_join)
 
-            with self.Session() as session:
-                for channel_name in channels_to_join:
-                    channel = session.query(Channel).filter_by(name=channel_name).first()
-                    if not channel:
-                        channel = Channel(name=channel_name)
-                        session.add(channel)
-                session.commit()
+            self.save_channels_to_db(channels_to_join)
 
             self.channels.extend(channels_to_join)
         else:
             print("No new live channels to join.")
-            
+
     async def update_channels_loop(self) -> None:
         while True:
             await asyncio.sleep(60)
