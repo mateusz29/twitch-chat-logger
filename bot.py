@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker
 from twitchio.ext import commands
 
 from db import Category, Channel, Message, engine
-from twitch_api import get_category_id, get_live_channels
+from twitch_api import check_user_banned, get_category_id, get_live_channels
 
 
 class Bot(commands.Bot):
@@ -66,6 +66,10 @@ class Bot(commands.Bot):
             self.category_ids.append(category_id)
 
         self.channels = self.get_channels_from_db()
+
+        # Exclude banned channels from the list of channels
+        login_banned_list = check_user_banned(self.channels)
+        self.channels = [login for login, banned in login_banned_list if not banned]
 
         if self.channels:
             print(f"Joining channels from db: {', '.join(self.channels)}")
