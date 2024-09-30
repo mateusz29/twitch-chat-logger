@@ -28,7 +28,7 @@ This project implements a Twitch bot that monitors live channels in specific cat
 
 ## TODO
 
-- [ ] Check if channel is band before joining
+- [x] Check if channel is band before joining
 - [ ] Change connection to the db
 - [x] Add a possibilty to add categories manually
 - [ ] Add a possibility to add channels manually
